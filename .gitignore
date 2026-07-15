@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Environment files (contain secrets — never commit)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Temp / debug artifacts
+.tmp-*
+*.tmp

@@ -1,0 +1,22 @@
+{
+  "name": "huodongxing-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "start": "node -r ./loadEnv app.js",
+    "dev": "nodemon --require ./loadEnv app.js",
+    "test:events-exchange": "node -r ./loadEnv scripts/test-events-exchange.js",
+    "debug:verify-assertion": "node -r ./loadEnv scripts/debug-verify-assertion.js",
+    "print:dbhost": "node -r ./loadEnv -e \"console.log('DB_HOST=', JSON.stringify(process.env.DB_HOST))\""
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "bcrypt": "^5.1.1",
+    "mysql2": "^3.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
