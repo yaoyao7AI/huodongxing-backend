@@ -1,0 +1,35 @@
+# Nginx 反向代理示例：将 80 端口请求转发到本机 3001 的 Node 服务
+# 放置到： /etc/nginx/conf.d/huodongxing-backend.conf
+# 然后： nginx -t && systemctl reload nginx
+#
+# 前提：应用 .env 中 HOST=127.0.0.1 PORT=3001（仅监听本机，由 Nginx 对外）
+
+server {
+    listen 80;
+    # 有域名就填域名；暂时用 IP 访问可填 _ 或公网 IP
+    server_name 8.217.78.212;
+
+    # 请求体大小上限（按需调整，如有文件上传）
+    client_max_body_size 20m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 10s;
+    }
+}
+
+# ============================================================
+# 需要 HTTPS 时，推荐用 certbot 自动签发（需先有域名解析到本机）：
+#   # Ubuntu/Debian:
+#   apt-get install -y certbot python3-certbot-nginx
+#   # Alibaba Cloud Linux/CentOS:
+#   dnf install -y certbot python3-certbot-nginx
+#   certbot --nginx -d your-domain.com
+# certbot 会自动改写本文件并配置 443 + 证书自动续期。
+# ============================================================
