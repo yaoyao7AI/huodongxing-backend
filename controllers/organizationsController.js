@@ -1,7 +1,23 @@
 const { pool } = require("../db");
 
+const DB_NAME = process.env.DB_NAME || "huodongxing_db";
+let cachedActivitiesColumns = null;
+
 function sendError(res, statusCode, message) {
   return res.status(statusCode).json({ success: false, message });
+}
+
+async function getActivitiesColumns() {
+  if (cachedActivitiesColumns) return cachedActivitiesColumns;
+  const [rows] = await pool.query(
+    `SELECT COLUMN_NAME AS name
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
+     ORDER BY ORDINAL_POSITION`,
+    [DB_NAME, "activities"]
+  );
+  cachedActivitiesColumns = rows.map((r) => r.name);
+  return cachedActivitiesColumns;
 }
 
 function toInt(value) {
@@ -211,6 +227,30 @@ async function deleteOrganization(req, res) {
     const id = toInt(req.params.id);
     if (!Number.isFinite(id) || id <= 0) {
       return sendError(res, 400, "参数 id 无效");
+    }
+
+    // 删除保护：有关联活动时返回 409（运行时探测 organization_id / org_id）
+    const activityCols = await getActivitiesColumns();
+    const orgFk = activityCols.includes("organization_id")
+      ? "organization_id"
+      : activityCols.includes("org_id")
+        ? "org_id"
+        : null;
+
+    if (orgFk) {
+      const [[countRow]] = await pool.query(
+        `SELECT COUNT(*) AS total FROM activities WHERE \`${orgFk}\` = ?`,
+        [id]
+      );
+      const total = Number(countRow?.total || 0);
+      if (total > 0) {
+        return sendError(res, 409, "该主办方存在关联活动，禁止删除");
+      }
+    } else {
+      console.warn(
+        "[organizations] activities 表无 organization_id/org_id，跳过关联检查后硬删",
+        { id }
+      );
     }
 
     const [result] = await pool.execute(`DELETE FROM organizations WHERE id = ?`, [id]);

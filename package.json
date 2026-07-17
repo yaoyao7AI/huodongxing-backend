@@ -12,8 +12,9 @@
     "print:dbhost": "node -r ./loadEnv -e \"console.log('DB_HOST=', JSON.stringify(process.env.DB_HOST))\""
   },
   "dependencies": {
-    "express": "^4.19.2",
     "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
     "mysql2": "^3.11.5"
   },
   "devDependencies": {

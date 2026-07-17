@@ -1,6 +1,7 @@
 require("./loadEnv");
 
 const express = require("express");
+const cors = require("cors");
 const dns = require("dns");
 
 const { ping } = require("./db");
@@ -9,6 +10,14 @@ const {
   logStartupExchangeSecretSummary,
   assertExchangeSecretsAtStartup
 } = require("./utils/exchangeSecret");
+
+function parseCorsOrigins(raw) {
+  if (!raw || typeof raw !== "string") return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function isPrivateIPv4(ip) {
   // Only handle IPv4 here; if IPv6 we return null
@@ -26,6 +35,43 @@ function isPrivateIPv4(ip) {
 }
 
 const app = express();
+
+const isProduction = process.env.NODE_ENV === "production";
+const corsOriginsFromEnv = parseCorsOrigins(process.env.CORS_ORIGINS);
+const defaultProdOrigins = [
+  "https://life-design.me",
+  "https://www.life-design.me",
+  "https://admin.life-design.me",
+  "http://admin.life-design.me"
+];
+const allowedOrigins = isProduction
+  ? corsOriginsFromEnv.length > 0
+    ? corsOriginsFromEnv
+    : defaultProdOrigins
+  : [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:5174",
+      ...defaultProdOrigins
+    ];
+
+// admin 浏览器直连本服务时需要 CORS（Events Token 走 Authorization Bearer，不带 cookie）
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (!isProduction) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: false,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Content-Length"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  })
+);
 
 app.use(express.json());
 
